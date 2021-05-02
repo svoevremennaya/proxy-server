@@ -10,7 +10,7 @@ namespace proxy
     {
         static void Main(string[] args)
         {
-            Proxy.Listen();
+            Proxy.Start();
         }
     }
 }
