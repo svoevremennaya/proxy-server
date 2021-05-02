@@ -66,10 +66,10 @@ namespace proxy
 
                 if (Program.blackList != null && Array.IndexOf(Program.blackList, host.ToLower()) != -1)
                 {
-                    string error = $"HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\nContent-Length: 40\r\n\r\nAccess denied";
+                    string error = $"HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\nContent-Length: 13\r\n\r\n403 Forbidden";
                     byte[] errorPage = Encoding.UTF8.GetBytes(error);
                     clientStream.Write(errorPage, 0, errorPage.Length);
-                    Console.WriteLine(DateTime.Now + " " + host + " 403 (forbidden)");
+                    Console.WriteLine(DateTime.Now + ": " + host + " 403 Forbidden");
                     return;
                 }
 
