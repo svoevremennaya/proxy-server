@@ -53,7 +53,7 @@ namespace proxy
             return data;
         }
 
-        public static void Response(NetworkStream networkStream, byte[] httpRequest)
+        public static void Response(NetworkStream clientStream, byte[] httpRequest)
         {
             Socket server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
@@ -64,6 +64,15 @@ namespace proxy
                 IPEndPoint ipEnd = GetEndPoint(request, out host);
                 string relPath = GetRelativePath(request);
 
+                if (Program.blackList != null && Array.IndexOf(Program.blackList, host.ToLower()) != -1)
+                {
+                    string error = $"HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\nContent-Length: 40\r\n\r\nAccess denied";
+                    byte[] errorPage = Encoding.UTF8.GetBytes(error);
+                    clientStream.Write(errorPage, 0, errorPage.Length);
+                    Console.WriteLine(DateTime.Now + " " + host + " 403 (forbidden)");
+                    return;
+                }
+
                 server.Connect(ipEnd);
                 NetworkStream serverStream = new NetworkStream(server);
 
@@ -71,10 +80,10 @@ namespace proxy
                 serverStream.Write(relPathBytes, 0, relPathBytes.Length);
 
                 byte[] httpResponse = Receive(serverStream);
-                networkStream.Write(httpResponse, 0, httpResponse.Length);
+                clientStream.Write(httpResponse, 0, httpResponse.Length);
 
                 OutputResponse(httpResponse, host);
-                serverStream.CopyTo(networkStream);
+                serverStream.CopyTo(clientStream);
             }
             catch
             {

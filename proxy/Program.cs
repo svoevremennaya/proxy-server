@@ -8,8 +8,13 @@ namespace proxy
 {
     class Program
     {
+        public static string blackListFileName = "black_list.conf";
+        public static string[] blackList;
+
         static void Main(string[] args)
         {
+            string buf = BlackList.GetBlackList(blackListFileName);
+            blackList = buf.Trim().Split('\r', '\n');
             Proxy.Start();
         }
     }
