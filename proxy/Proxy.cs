@@ -66,9 +66,7 @@ namespace proxy
 
                 if (Program.blackList != null && Array.IndexOf(Program.blackList, host.ToLower()) != -1)
                 {
-                    string error = $"HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\nContent-Length: 13\r\n\r\n403 Forbidden";
-                    byte[] errorPage = Encoding.UTF8.GetBytes(error);
-                    clientStream.Write(errorPage, 0, errorPage.Length);
+                    LoadErrorPage(clientStream, host);
                     Console.WriteLine(DateTime.Now + ": " + host + " 403 Forbidden");
                     return;
                 }
@@ -126,6 +124,20 @@ namespace proxy
             string code = bufResponse[0].Substring(bufResponse[0].IndexOf(" ") + 1);
 
             Console.WriteLine(DateTime.Now + " " + host + " " + code);
+        }
+
+        public static void LoadErrorPage(NetworkStream clientStream, string host)
+        {
+            FileStream fileStream = new FileStream("error_page.html", FileMode.Open);
+            byte[] bufErrorPage = new byte[fileStream.Length];
+            fileStream.Read(bufErrorPage, 0, bufErrorPage.Length);
+            string error = $"HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\nContent-Length: " + bufErrorPage.Length + "\r\n\r\n" +  "<p>" + host;
+
+            byte[] errorPage = new byte[bufErrorPage.Length + error.Length];
+            Array.Copy(Encoding.UTF8.GetBytes(error), 0, errorPage, 0, Encoding.UTF8.GetBytes(error).Length);
+            Array.Copy(bufErrorPage, 0, errorPage, Encoding.UTF8.GetBytes(error).Length, bufErrorPage.Length);
+
+            clientStream.Write(errorPage, 0, errorPage.Length);
         }
     }
 }
