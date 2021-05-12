@@ -13,7 +13,7 @@ namespace proxy
 {
     public class Proxy
     {
-        public const int BUFFER = 1024;
+        public const int BUFFER = 8192;
         public static IPAddress ipAddress = IPAddress.Parse("127.0.0.1");
         public static int Port = 8888;
 
@@ -48,7 +48,7 @@ namespace proxy
                 receivedBytes = netStream.Read(bufData, 0, bufData.Length);
                 Array.Copy(bufData, 0, data, dataBytes, receivedBytes);
                 dataBytes += receivedBytes;
-            } while (netStream.DataAvailable);
+            } while (netStream.DataAvailable && receivedBytes < BUFFER);
 
             return data;
         }
@@ -62,7 +62,7 @@ namespace proxy
                 string request = Encoding.UTF8.GetString(httpRequest);
                 string host;
                 IPEndPoint ipEnd = GetEndPoint(request, out host);
-                string relPath = GetRelativePath(request);
+                string message = GetRelativePath(request);
 
                 if (Program.blackList != null && Array.IndexOf(Program.blackList, host.ToLower()) != -1)
                 {
@@ -74,8 +74,8 @@ namespace proxy
                 server.Connect(ipEnd);
                 NetworkStream serverStream = new NetworkStream(server);
 
-                byte[] relPathBytes = Encoding.UTF8.GetBytes(relPath);
-                serverStream.Write(relPathBytes, 0, relPathBytes.Length);
+                byte[] messageBytes = Encoding.UTF8.GetBytes(message);
+                serverStream.Write(messageBytes, 0, messageBytes.Length);
 
                 byte[] httpResponse = Receive(serverStream);
                 clientStream.Write(httpResponse, 0, httpResponse.Length);
@@ -95,9 +95,11 @@ namespace proxy
 
         public static string GetRelativePath(string message)
         {
-            MatchCollection matchCollection = (new Regex(@"http:\/\/[a-z0-9а-я\.\:]*")).Matches(message);
-            string host = matchCollection[0].Value;
+            Regex regex = new Regex(@"http:\/\/[a-z0-9а-я\.\:]*");
+            Match match = regex.Match(message);
+            string host = match.Value;
             message = message.Replace(host, "");
+            
             return message;
         }
 
@@ -136,6 +138,8 @@ namespace proxy
             byte[] errorPage = new byte[bufErrorPage.Length + error.Length];
             Array.Copy(Encoding.UTF8.GetBytes(error), 0, errorPage, 0, Encoding.UTF8.GetBytes(error).Length);
             Array.Copy(bufErrorPage, 0, errorPage, Encoding.UTF8.GetBytes(error).Length, bufErrorPage.Length);
+
+            fileStream.Close();
 
             clientStream.Write(errorPage, 0, errorPage.Length);
         }
